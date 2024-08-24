@@ -6,20 +6,29 @@ import React, { useState, useEffect } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import ButtonSpinner from "../components/ButtonSpinner";
-import ErrorModal from "../components/ErrorModal";
+
 import axios from "axios";
 import { useFormik } from "formik";
+
+import { FaEye, FaEyeSlash } from "react-icons/fa";
+
 const validate = (values) => {
   const errors = {};
   if (!values.name) {
     errors.name = "Name Required";
-  } else if (values.name.length > 15) {
-    errors.name = "Must be 15 characters or less";
+  } else if (values.name.length < 2) {
+    errors.name = "Must be 2 characters or less";
   }
   if (!values.email) {
     errors.email = "Email Required";
   } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(values.email)) {
     errors.email = "Invalid email address";
+  }
+  if(!values.phone){
+    errors.phone = "Phone Number Required";
+  }
+  else if(values.phone.length !== 10){
+    errors.phone = "Invalid Phone Number";
   }
   if (!values.password) {
     errors.password = "Password Required";
@@ -31,22 +40,37 @@ const validate = (values) => {
   } else if (values.confirmPassword !== values.password) {
     errors.confirmPassword = "Password doesn't match";
   }
+  if(!values.role){
+    errors.role = "Role Required";
+  }
+
   return errors;
 };
 const Register = () => {
   const [isloading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [isError, setIsError] = useState(false);
+ 
   const [isVerified, setIsVerified] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
   const [otpModal, setOtpModal] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
+  };
 
   const formik = useFormik({
     initialValues: {
       name: "",
       email: "",
+      phone: "",
       password: "",
       confirmPassword: "",
+      role: "",
     },
     validate,
     onSubmit: async (values) => {
@@ -58,6 +82,7 @@ const Register = () => {
           const response = await axios.post(
             "http://localhost:8050/api/v1/users/signup",
             values,
+      
             {
               headers: {
                 "Content-Type": "application/json",
@@ -70,18 +95,34 @@ const Register = () => {
           console.log(response.status);
           if (response.status === 200) {
             toast.success("Registered Successfully");
+            setIsRegistered(true);
+            setIsVerified(false);
+            setIsLoading(false);
+            formik.resetForm();
+
           } else {
-            setError("Something went wrong");
-            setIsError(true);
+            toast.error("Error sending message. Please try again.");
+   
+            setUser(null);
           }
+          
+
+         
         } catch (error) {
-          setError(error.message);
+          console.log(error.response.data.message);
           setIsLoading(false);
-          setIsError(true);
+          formik.resetForm();
+          setIsRegistered(false);
+          toast.error("Error sending message. Please try again.");
+          
+ 
+          setUser(null);
         }
       } else {
         setError("Please verify your email first");
-        setIsError(true);
+        toast.error("Please verify your email first");
+
+        
       }
     },
   });
@@ -104,24 +145,11 @@ const Register = () => {
     if (isloading) {
       console.log("loading");
     }
-    if (isError) {
-      console.log("error");
-    }
-  }, [isloading, isError]);
-  const handleModalClose = () => {
-    setIsError(false);
-  };
-
+    
+  }, [isloading]);
   return (
     <React.Fragment>
-      {(
-        <ErrorModal
-          error={error}
-          onModalClose={handleModalClose}
-          onClear={() => setError(null)}
-        />
-      ) && isError}
-
+      
       <div>
         <div className="min-h-screen z-20 bg-gray-100 text-gray-900 flex justify-center">
           <div className="max-w-screen-xl m-0 sm:m-10 bg-white shadow sm:rounded-lg flex justify-center flex-1">
@@ -181,30 +209,75 @@ const Register = () => {
                     ) : null}
                     <input
                       className="w-full px-8 py-4 rounded-lg font-medium bg-gray-100 border border-gray-200 placeholder-gray-500 text-sm focus:outline-none focus:border-gray-400 focus:bg-white mt-5"
-                      type="password"
-                      placeholder="Password"
+                      type="text"
+                      placeholder="Phone Number"
                       required
-                      name="password"
+                      name="phone"
                       onChange={formik.handleChange}
-                      value={formik.values.password}
+                      value={formik.values.phone}
                       onBlur={formik.handleBlur}
                     />
-                    {formik.touched.password && formik.errors.password ? (
-                      <div>{formik.errors.password}</div>
+                    {formik.touched.phone && formik.errors.phone ? (
+                      <div>{formik.errors.phone}</div>
                     ) : null}
-                    <input
-                      className="w-full px-8 py-4 rounded-lg font-medium bg-gray-100 border border-gray-200 placeholder-gray-500 text-sm focus:outline-none focus:border-gray-400 focus:bg-white mt-5"
-                      type="password"
-                      placeholder="Confirm Password"
-                      required
-                      name="confirmPassword"
+                     <div className="relative">
+        <input
+          className="w-full px-8 py-4 rounded-lg font-medium bg-gray-100 border border-gray-200 placeholder-gray-500 text-sm focus:outline-none focus:border-gray-400 focus:bg-white mt-5"
+          type={showPassword ? "text" : "password"}
+          placeholder="Password"
+          required
+          name="password"
+          onChange={formik.handleChange}
+          value={formik.values.password}
+          onBlur={formik.handleBlur}
+        />
+        <span
+          className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer"
+          onClick={togglePasswordVisibility}
+        >
+          {showPassword ? <FaEyeSlash /> : <FaEye />}
+        </span>
+        {formik.touched.password && formik.errors.password ? (
+          <div>{formik.errors.password}</div>
+        ) : null}
+      </div>
+
+      <div className="relative">
+        <input
+          className="w-full px-8 py-4 rounded-lg font-medium bg-gray-100 border border-gray-200 placeholder-gray-500 text-sm focus:outline-none focus:border-gray-400 focus:bg-white mt-5"
+          type={showConfirmPassword ? "text" : "password"}
+          placeholder="Confirm Password"
+          required
+          name="confirmPassword"
+          onChange={formik.handleChange}
+          value={formik.values.confirmPassword}
+          onBlur={formik.handleBlur}
+        />
+        <span
+          className="absolute right-3 top-2/4 transform -translate-y-1/2 cursor-pointer"
+          onClick={toggleConfirmPasswordVisibility}
+        >
+          {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+        </span>
+        {formik.touched.confirmPassword && formik.errors.confirmPassword ? (
+          <div>{formik.errors.confirmPassword}</div>
+        ) : null}
+      </div>
+
+                    <select
+                      name="role"
                       onChange={formik.handleChange}
-                      value={formik.values.confirmPassword}
+                      value={formik.values.role}
                       onBlur={formik.handleBlur}
-                    />
-                    {formik.touched.confirmPassword &&
-                    formik.errors.confirmPassword ? (
-                      <div>{formik.errors.confirmPassword}</div>
+                       className="w-full px-8 py-4 rounded-lg font-medium bg-gray-100 border border-gray-200 placeholder-gray-500 text-sm focus:outline-none focus:border-gray-400 focus:bg-white mt-5"
+                    >
+                      <option value="">Select Role</option>
+                      <option value="jobseeker">Job Seeker</option>
+                      <option value="employer">Employer</option>
+                    </select>
+
+                    {formik.touched.role && formik.errors.role ? (
+                      <div>{formik.errors.role}</div>
                     ) : null}
 
                     <div className="flex mt-5 items-center justify-center">
@@ -268,7 +341,7 @@ const Register = () => {
                     </p>
                   </div>
                 </form>
-                <ToastContainer />
+                
               </div>
             </div>
             <div className="flex-1 bg-pink-100 text-center hidden lg:flex">

@@ -4,21 +4,18 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 
-import ErrorModal from "../components/ErrorModal";
 
 const Otp2 = ({ setVerifyHandler, username, email }) => {
   const [otp, setOtp] = useState(Array(6).fill(""));
   const [timer, setTimer] = useState(0); // Start with 0 seconds
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [otpSended, setOtpSended] = useState(false);
-  const [error, setError] = useState("");
-  const [isError, setIsError] = useState(false);
 
   const verifyHandler = async () => {
     setOtpSended(true);
     try {
       const response = await axios.post(
-        "http://localhost:8050/api/v2/employees/emailVerification",
+        "http://localhost:8050/api/v1/email/send",
         { email: email, name: username },
         {
           headers: {
@@ -36,8 +33,7 @@ const Otp2 = ({ setVerifyHandler, username, email }) => {
         "Error sending OTP:",
         error.response?.data || error.message
       );
-      setError(error.response?.data?.message || error.message);
-      setIsError(true);
+      toast.error(error.response?.data?.message || error.message);
     }
   };
 
@@ -62,7 +58,7 @@ const Otp2 = ({ setVerifyHandler, username, email }) => {
     } else {
       try {
         const response = await axios.post(
-          `http://localhost:8050/api/v2/employees/verifyOtp`,
+          `http://localhost:8050/api/v1/email/verify`,
           { email: email, otp: otpValue },
           {
             headers: {
@@ -80,8 +76,7 @@ const Otp2 = ({ setVerifyHandler, username, email }) => {
           "Error verifying OTP:",
           error.response?.data || error.message
         );
-        setError(error.response?.data?.message || error.message);
-        setIsError(true);
+       
         setVerifyHandler(false);
       }
     }
@@ -105,13 +100,7 @@ const Otp2 = ({ setVerifyHandler, username, email }) => {
 
   return (
     <React.Fragment>
-      {isError && (
-        <ErrorModal
-          error={error}
-          onClear={() => setIsError(false)}
-          onClose={() => setIsError(false)}
-        />
-      )}
+      
       <div className="max-w-sm mx-auto md:max-w-lg">
         <div className="w-full">
           <div className="bg-white h-90 py-3 rounded text-center">

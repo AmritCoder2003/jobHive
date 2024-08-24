@@ -1,8 +1,9 @@
 import {useRouteError} from 'react-router-dom';
 import { Link } from "react-router-dom";
+
 const Error = () => {
   const error = useRouteError();
-  console.log(error);
+
   if(error.status===404){
     return (
       <div className="grid h-screen place-content-center bg-white px-4">

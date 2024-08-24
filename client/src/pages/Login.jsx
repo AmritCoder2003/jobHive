@@ -1,13 +1,15 @@
 import { FaGoogle, FaEye } from "react-icons/fa";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import React, { useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import ButtonSpinner from "../components/ButtonSpinner";
-import ErrorModal from "../components/ErrorModal";
+
 import axios from "axios";
 import { useFormik } from "formik";
-
+import { useDispatch } from "react-redux";
+import { setUser } from "../Redux/userRedux";
+//require
 const validate = (values) => {
   const errors = {};
   if (!values.email) {
@@ -27,10 +29,11 @@ const validate = (values) => {
 };
 
 const Login = () => {
+  
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [isError, setIsError] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const dispatch = useDispatch();
+  const navigate = useNavigate(); // Added useNavigate hook
 
   const formik = useFormik({
     initialValues: {
@@ -40,10 +43,7 @@ const Login = () => {
     },
     validate,
     onSubmit: async (values) => {
-      
-      console.log(formik.values);
-      if(formik.role==="applicant"){
-        setIsLoading(true);
+      setIsLoading(true);
       try {
         const response = await axios.post(
           "http://localhost:8050/api/v1/users/login",
@@ -52,46 +52,34 @@ const Login = () => {
             headers: {
               "Content-Type": "application/json",
             },
+            withCredentials: true,
           }
         );
-        formik.resetForm();
+       
         setIsLoading(false);
         if (response.status === 200) {
+          localStorage.setItem("token", response.data.token);
           toast.success("Login Successful");
+         
+          console.log(response);
+          dispatch(setUser(response.data.user));
+         if(response.data.user.role==="employer"){
+        navigate("/ViewYourJobs"); 
+
+        }else{
+          navigate("/AllJobs");
+        }
+
         } else {
           toast.error("Login Failed");
-        }
-      } catch (error) {
-        setIsLoading(false);
-        setIsError(true);
-        setError(error.response ? error.response.data.message : error.message);
-      }
-    }else{
-      setIsLoading(true);
-      try {
+          formik.resetForm();
         
-        const response = await axios.post(
-          "http://localhost:8050/api/v2/employees/login",
-          values,
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
-        formik.resetForm();
-        setIsLoading(false);
-        if (response.status === 200) {
-          toast.success("Login Successful");
-        } else {
-          toast.error("Login Failed");
         }
       } catch (error) {
         setIsLoading(false);
-        setIsError(true);
-        setError(error.response ? error.response.data.message : error.message);
+        formik.resetForm();
+        toast.error('Something went wrong. Please try again.');
       }
-    }
     },
   });
 
@@ -99,10 +87,8 @@ const Login = () => {
     if (isLoading) {
       console.log("loading");
     }
-    if (isError) {
-      console.log("error");
-    }
-  }, [isLoading, isError]);
+   
+  }, [isLoading]);
 
   const handleBlink = () => {
     setShowPassword(!showPassword);
@@ -117,9 +103,7 @@ const Login = () => {
 
   return (
     <React.Fragment>
-      {isError && (
-        <ErrorModal onClose={() => setIsError(false)}>{error}</ErrorModal>
-      )}
+     
       <div>
         <section className="bg-gray-100 min-h-screen flex box-border justify-center items-center">
           <div className="bg-pink-600 rounded-2xl flex max-w-3xl p-5 items-center">
@@ -143,7 +127,7 @@ const Login = () => {
                   onBlur={formik.handleBlur}
                 />
                 {formik.touched.email && formik.errors.email ? (
-                  <div>{formik.errors.email}</div>
+                  <div className="text-red-500">{formik.errors.email}</div>
                 ) : null}
                 <div className="relative">
                   <input
@@ -157,7 +141,7 @@ const Login = () => {
                     onBlur={formik.handleBlur}
                   />
                   {formik.touched.password && formik.errors.password ? (
-                    <div>{formik.errors.password}</div>
+                    <div className="text-red-500">{formik.errors.password}</div>
                   ) : null}
                   <FaEye
                     onClick={handleBlink}
@@ -167,14 +151,16 @@ const Login = () => {
                 <div className="flex items-center gap-2">
                   <input
                     type="radio"
-                    id="applicant"
+                    id="jobseeker"
                     name="role"
-                    value="applicant"
+                    value="jobseeker"
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
-                    checked={formik.values.role === "applicant"}
+                    checked={formik.values.role === "jobseeker"}
                   />
-                  <label htmlFor="applicant" className="text-white">Applicant</label>
+                  <label htmlFor="jobseeker" className="text-white">
+                    Jobseeker
+                  </label>
                   <input
                     type="radio"
                     id="employer"
@@ -184,10 +170,12 @@ const Login = () => {
                     onBlur={formik.handleBlur}
                     checked={formik.values.role === "employer"}
                   />
-                  <label htmlFor="employer" className="text-white">Employer</label>
+                  <label htmlFor="employer" className="text-white">
+                    Employer
+                  </label>
                 </div>
                 {formik.touched.role && formik.errors.role ? (
-                  <div>{formik.errors.role}</div>
+                  <div className="text-red-500">{formik.errors.role}</div>
                 ) : null}
                 {isLoading ? (
                   <ButtonSpinner message="Logging in" />
@@ -195,7 +183,6 @@ const Login = () => {
                   <button
                     className="bg-pink-950 text-white py-2 rounded-xl hover:scale-105 duration-300 hover:bg-pink-800 hover:text-white font-medium"
                     type="submit"
-                    disabled={!formik.isValid}
                   >
                     Login
                   </button>
@@ -236,7 +223,7 @@ const Login = () => {
           </div>
         </section>
       </div>
-      <ToastContainer />
+
     </React.Fragment>
   );
 };

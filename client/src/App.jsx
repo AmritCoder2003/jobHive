@@ -1,29 +1,38 @@
+import React, { useEffect } from "react";
 import axios from "axios";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { useDispatch, useSelector } from "react-redux";
+import { setUser } from "./Redux/userRedux";
+import ProtectedRoute from "./components/ProtectedRoute";
 import {
   HomeLayout,
   Login,
   Register,
-  DashboardLayout,
   Error,
   Landing,
-  AddJob,
+  PostJob,
   AllJobs,
-  Stats,
   Profile,
-  RegisterRecruiter,
   About,
-  Contact
+  Contact,
+  Admin,
+  Apply,
+  EditJob,
+  Application,
+  Myapplication,
+  ResumeModal,
+  PopularCompanies,
+  Myjobs,
+  PopularCategory,
+  JobDetails,
+  Howitworks,
+  PorfileEdit,
+  ViewYourJobs,
 } from "./pages";
-import { useCallback, useEffect,useState } from "react";
-import { AuthContext } from "./Context/AuthContext";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 
-
-
-const router = createBrowserRouter(
-  [
+const router = createBrowserRouter([
   {
     path: "/",
     element: <HomeLayout />,
@@ -32,85 +41,64 @@ const router = createBrowserRouter(
       { index: true, element: <Landing /> },
       { path: "login", element: <Login /> },
       { path: "register", element: <Register /> },
-      { path: "dashboard", element: <DashboardLayout /> },
       { path: "landing", element: <Landing /> },
-      { path: "AddJob", element: <AddJob /> },
-      { path: "AllJobs", element: <AllJobs /> },
-      { path: "Stats", element: <Stats /> },
-      { path: "Profile", element: <Profile /> },
-      { path: "registerRecruiter", element: <RegisterRecruiter /> },
+      { path: "job/post", element: <ProtectedRoute element={<PostJob />} /> },
+      { path: "AllJobs", element: <ProtectedRoute element={<AllJobs />} /> },
+      { path: "Profile", element: <ProtectedRoute element={<Profile />} /> },
       { path: "about", element: <About /> },
-      { path: "contact", element: <Contact /> },
+      { path: "contact", element:<Contact /> },
+      { path: "admin", element: <ProtectedRoute element={<Admin />} /> },
+      { path: "Apply/:id", element: <ProtectedRoute element={<Apply />} /> },
+      { path: "EditJob/:id", element: <ProtectedRoute element={<EditJob />} /> },
+      { path: "application/:id", element: <ProtectedRoute element={<Application />} /> },
+      { path: "application/me", element: <ProtectedRoute element={<Myapplication />} /> },
+      { path: "ResumeModal", element: <ProtectedRoute element={<ResumeModal />} /> },
+      { path: "PopularCompanies", element: <ProtectedRoute element={<PopularCompanies />} /> },
+      { path: "job/me", element: <ProtectedRoute element={<Myjobs />} /> },
+      { path: "PopularCategory", element: <ProtectedRoute element={<PopularCategory />} /> },
+      { path: "jobs/:id", element: <ProtectedRoute element={<JobDetails />} /> },
+      { path: "Howitworks", element: <ProtectedRoute element={<Howitworks />} /> },
+      { path: "PorfileEdit", element: <ProtectedRoute element={<PorfileEdit />} /> },
+      { path: "ViewYourJobs", element: <ProtectedRoute element={<ViewYourJobs />} /> },
     ],
   },
 ]);
-let logoutTimer;
+
 const App = () => {
-  const [sessionId, setSessionId] = useState(false);
-  const [userId, setUserId] = useState(null);
-  const [sessionExpiration, setSessionExpiration] = useState();
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.user || {});
+
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await axios.get(
+          "http://localhost:8050/api/v1/users/getuser",
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+        console.log(response.data.user);
+        if (response.data.user) {
+          dispatch(setUser(response.data.user));
+        }
+      } catch (error) {
+        dispatch(setUser(null));
+      }
+    };
+
+    fetchUser();
   
-  // useEffect(() => {
-  //   const getUser=async()=>{
-  //  try{
-  //   const res = await axios.get("http://localhost:8050/emp/auth/login/success",{
-  //     withCredentials: true,
-  //     method: "GET",
-  //     headers: {
-  //       "Content-Type": "application/json",
-  //   }
+  }, [dispatch]);
 
-  // }
-
-  //   );
-  //   console.log(res);
-  //   if(res.status===200){
-  //     setUser(res.data.user);
-  //   }else{
-  //     console.log("User not authenticated");
-  //   }
-  //  }catch(err){
-  //    console.log(err);
-  //  }
-  // }
-  // getUser();
-  // }, []);
-  const login=useCallback((uid,session,expirationDate)=>{
-    setUserId(uid);
-    setSessionId(session);
-    const sessionExpiration=expirationDate || new Date(new Date().getTime()+1000*60*60);
-    setSessionExpiration(sessionExpiration);
-    localStorage.setItem(
-      "userData",
-      JSON.stringify({
-        userId: uid,
-        sessionId: session,
-        expiration: sessionExpiration.toISOString(),
-      })
-    );
-  },[]);
-  const logout=useCallback(()=>{
-    setUserId(null);
-    setSessionId(null);
-    setSessionExpiration(null);
-    localStorage.removeItem("userData");
-  },[]);
-  useEffect(()=>{
-    if(sessionId && sessionExpiration){
-      const remainingTime=sessionExpiration.getTime()-new Date().getTime();
-      logoutTimer=setTimeout(logout,remainingTime);
-    }else{
-      clearTimeout(logoutTimer);
-    }
-  },[sessionId,logout,sessionExpiration]);
-  useEffect(()=>{
-    const storedData=JSON.parse(localStorage.getItem("userData"));
-    if(storedData && storedData.sessionId && new Date(storedData.expiration)>new Date()){
-      login(storedData.userId,storedData.sessionId,new Date(storedData.expiration));
-    }
-  },[login]);
-
-   return <RouterProvider router={router} />;
+  return (
+    <>
+      <RouterProvider router={router} />
+      <ToastContainer />
+    </>
+  );
 };
 
 export default App;

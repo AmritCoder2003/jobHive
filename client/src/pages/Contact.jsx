@@ -5,7 +5,6 @@ import React, { useEffect, useState } from "react";
 import {ToastContainer, toast} from 'react-toastify';
 import ButtonSpinner from "../components/ButtonSpinner";
 import 'react-toastify/dist/ReactToastify.css';
-import ErrorModal from "../components/ErrorModal";
 // import Spinner from "../components/Spinner";
 import axios from "axios";
 import {useFormik} from "formik";
@@ -32,9 +31,7 @@ const validate = (values) => {
 }
 const Contact = () => {
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState();
-    const [isError, setIsError] = useState(false);
-  const notify = () => toast.success("Message sent successfully!");
+
   const formik=useFormik({
     initialValues:{
       name:'',
@@ -59,15 +56,14 @@ const Contact = () => {
         formik.resetForm(); // Reset form values
         console.log(response.status);
         if (response.status === 201) {
-          notify(); // Show success message
+          toast.success("Message sent successfully!"); // Show success message
         } else {
-          setError("Error sending message! Please try again.");
-          setIsError(true);
+          toast.error("Error sending message. Please try again."); // Show error message
         }
       }catch(err){
-          setError(err.message);
+         
           setIsLoading(false);
-          setIsError(true);
+          toast.error("Error sending message. Please try again.");
         }
     },
   });
@@ -76,25 +72,14 @@ const Contact = () => {
     if(isLoading){
       console.log("Loading");
     }
-    if(isError){
-      console.log("Error");
-    }
-}, [isError,isLoading])
+   
+}, [isLoading])
 
   
-  const handleModalClose = () => {
-    setIsError(false);
-  }
+
   return (
     <React.Fragment>
-      {(
-        <ErrorModal
-          error={error}
-          onClear={() => setError(null)}
-          onClose={handleModalClose}
-        />
-      ) && isError}
-
+      
       <div>
         <section className="bg-pink-50 dark:bg-white" id="contact">
           <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
@@ -257,7 +242,7 @@ const Contact = () => {
                       </div>
                     )}
                   </form>
-                  <ToastContainer />
+               
                 </div>
               </div>
             </div>
